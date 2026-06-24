@@ -123,6 +123,52 @@ BayesianXGBoost & 9 & n\_est$\in$[100,2000], depth$\in$[3,15], lr$\in$[0.01,0.3]
 \end{tabular}
 \end{table*}
 
+\subsection{Algorithm}
+
+Algorithm~\ref{alg:tpe} formalizes the TPE-based Bayesian optimization procedure used across all 10 model families.
+
+\begin{figure}[htbp]
+\centering
+\fbox{\begin{minipage}{0.85\linewidth}
+\small
+\textbf{Algorithm 1: TPE Bayesian Hyperparameter Optimization}
+
+\noindent\textbf{Input:} Model family $\mathcal{M}$, search space $\Theta$, dataset $\mathcal{D}$, trials $T=50$\\
+\textbf{Output:} Optimal hyperparameters $\theta^*$, best validation IC $s^*$
+
+\begin{enumerate}
+  \item Initialize TPE sampler with random 10 trials
+  \item \textbf{for} $t = 1$ \textbf{to} $T$ \textbf{do}
+  \begin{enumerate}
+    \item Sample $\theta_t \sim \text{TPE}(\Theta \mid \text{history})$
+    \item Build model $m_t = \mathcal{M}(\theta_t)$
+    \item Train $m_t$ on $\mathcal{D}_{\text{train}}$ for 20 epochs
+    \item Compute $s_t = \text{RankIC}(m_t, \mathcal{D}_{\text{val}})$
+    \item Update TPE: fit $l(\theta) = P(\theta \mid s > \text{median})$, $g(\theta) = P(\theta \mid s \leq \text{median})$
+    \item Sample next $\theta$ where $l(\theta)/g(\theta)$ is maximized
+  \end{enumerate}
+  \item $\theta^* = \arg\max_t s_t$; retrain $m^*$ with $\theta^*$ for 50 epochs
+  \item \textbf{return} $(\theta^*, s^*)$
+\end{enumerate}
+\end{minipage}}
+\caption{TPE-based Bayesian hyperparameter optimization.}
+\label{alg:tpe}
+\end{figure}
+
+The TPE models $P(\theta \mid \text{score})$ by maintaining two Parzen-window density estimators: $l(\theta)$ for the top-performing trials and $g(\theta)$ for the remaining trials. Each iteration samples from the region where $l(\theta)/g(\theta)$ is maximized --- i.e., where promising hyperparameters are likely but not yet fully explored. This balances exploitation (sampling near known good regions) with exploration (avoiding oversampling of already-dense regions).
+
+\subsection{Planned GPU Experiments}
+
+The Bayesian optimization described above requires GPU access for the deep learning models. We plan the following experiments on BigQuant GPU notebooks:
+
+\begin{itemize}
+  \item \textbf{Model comparison}: Train all 10 Bayesian-optimized models on 1-minute OHLCVA data with 1000-stock cross-section
+  \item \textbf{Ablation study}: Controlled comparison of (a) encoder architecture, (b) lookback window, (c) IC loss weight $\alpha$, (d) confidence gate threshold $\tau$
+  \item \textbf{Ensemble ablation}: IC-weighted vs. equal-weight vs. stacking ensemble on top-5 models
+  \item \textbf{Robustness}: Multi-seed evaluation ($\ge 3$ seeds) with mean$\pm$std reporting
+  \item \textbf{Regime analysis}: Bull market (2024 H2) vs. bear market (2025 Q1) performance comparison
+\end{itemize}
+
 %=============================================================================
 \section{Local Baseline Experiment}
 %=============================================================================
