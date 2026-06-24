@@ -1,7 +1,7 @@
 ---
 name: paper-super-reviewer
-description: "端到端学术论文超审系统 — 集成定量评分卡、三智能体审稿面板、跨审稿综合、引用质量审计、LaTeX格式检查。模拟真实学术评审全流程，输出结构化审稿报告。"
-version: 2.0.0
+description: "端到端学术论文超审系统 — 三智能体协同审稿 + 跨审稿综合 + 定量评分卡 + 引用审计 + LaTeX检查。模拟真实学术评审全流程。"
+version: 2.1.0
 author: TheeTarnished
 license: MIT
 platforms: [linux, macos, windows]
@@ -14,67 +14,132 @@ metadata:
 
 # Paper Super Reviewer — 论文超审
 
-端到端学术论文质量审核系统。模拟真实学术评审全流程，通过三个专业化智能体协同工作，生成结构化审稿报告。
+[![Stars](https://img.shields.io/github/stars/TheeTarnished/paper-super-reviewer?style=social)](https://github.com/TheeTarnished/paper-super-reviewer)
+[![Version](https://img.shields.io/badge/version-2.1.0-blue)](https://github.com/TheeTarnished/paper-super-reviewer)
 
-## 三智能体架构
+端到端学术论文质量审核系统。三个专业化智能体并行审稿，模拟真实学术评审全流程——从定量评分到格式检查到跨审稿综合，输出完整的结构化审稿报告。
 
-本系统采用三智能体并行审稿 + 跨审稿综合的架构。每个智能体从不同专业视角独立评审同一篇论文，最后综合形成统一的审稿意见。
+## 为什么是三个智能体？
 
-### Agent 1: 方法论审稿人 (Methodology Reviewer)
+真实学术评审中，一篇论文通常由 2-4 位审稿人独立评审。三位是最佳平衡点：
 
-**职责**: 从技术健全性角度深挖论文的方法论质量。
+- **2 位太少**：当意见分歧时（一位 Accept、一位 Reject），缺乏第三个独立视角打破僵局
+- **4+ 位冗余**：边际信息增益递减，增加协调成本
+- **3 位恰好**：保证多视角覆盖（技术/领域/写作），同时分歧时有决定性一票
 
-**评审维度**:
-- 实验设计是否严谨：有无对照实验、消融实验、统计显著性检验
-- 方法论正确性：数学推导是否无误、算法实现是否有逻辑漏洞
-- 超参设置是否合理：是否有超参敏感性分析
-- 可复现性：代码是否开源、数据是否可获取、随机种子是否固定
+每位智能体从完全不同但互补的专业视角审视同一篇论文，不共享中间状态，以保证评审独立性。
 
-**典型发现**: "Transformer 的 132K 参数在仅有 2,146 样本上严重欠定——样本/参数比仅 16:1，结论不可靠。"
+## 三智能体详解
 
-### Agent 2: 领域审稿人 (Domain Reviewer)
+### Agent 1 — 方法论审稿人 (Methodology Reviewer)
 
-**职责**: 从领域知识角度评估论文的创新性和贡献。
+**核心使命**: 从技术健全性角度，像一位严格的方法论学者一样审视论文。
 
-**评审维度**:
-- 创新性：与 SOTA 的实质性差异是什么，是否只是组合现有方法
-- 相关工作覆盖：是否遗漏关键基线（如 iTransformer, DLinear, Mamba）
-- 贡献显著性：对领域是否有实质推动，还是增量改进
-- 实验说服力：实验设置是否符合领域标准，数据集选择是否有偏
+**审查清单**:
+- **实验设计**: 有无对照实验？消融实验是否充分？统计显著性检验是否执行？
+- **方法论正确性**: 数学推导是否有漏洞？算法伪代码与实现是否一致？
+- **超参合理性**: 是否有超参敏感性分析？学习率、batch size、层数是否有消融？
+- **可复现性**: 代码是否开源？随机种子是否固定？依赖版本是否锁定？
+- **硬件与效率**: 训练/推理时长是否合理？参数量与数据量是否匹配？
 
-**典型发现**: "论文声称 23 个模型但仅测试 6 个——严重的 claim-evidence gap。Kronos 作为唯一的金融基础模型未被实际对比。"
+**典型工作方式**: 会主动追踪 paper 中的每一个 claim 是否被实验结果支撑。发现 "23 个模型声称，6 个实测" 会标记为 Fatal。
 
-### Agent 3: 通才审稿人 (General Reviewer)
+**输出风格**: 技术性强、引用具体行号和表格数据、扣分附带精确修复路径。
 
-**职责**: 从写作质量、可读性和格式规范角度评估。
+### Agent 2 — 领域审稿人 (Domain Reviewer)
 
-**评审维度**:
-- 段落逻辑流：每段是否有清晰的 topic sentence → evidence → transition
-- 贡献展示：Introduction 是否清晰列出贡献
-- Claim-evidence 一致性：每个声称是否有证据支撑
-- 术语一致性：关键术语全文统一
-- 图表叙述：图表是否在正文中被充分讨论
-- LaTeX 格式：编译是否零错误、引用是否完整、表格是否溢出
+**核心使命**: 从领域知识和 SOTA 对比角度，判断论文的创新性和贡献。
 
-**典型发现**: "参考文献 hochreiter1997 和 cho2014 在正文中被引用，但摘要中未提及——需统一。Table 1 溢出 ACM 双栏格式。"
+**审查清单**:
+- **创新性定位**: 与 SOTA 的实质性差异是什么？是方法创新还是组合创新？
+- **相关工作覆盖**: 是否遗漏关键基线？引用是否全面且最新（近 3 年）？
+- **贡献显著性**: 对领域是增量改进还是范式推动？实验提升是否显著？
+- **实验说服力**: 数据集选择是否代表领域？对比基线是否公平？
+- **局限诚实性**: 作者是否诚实地讨论了方法的局限性？
 
-### 跨审稿综合 (Cross-Review Synthesis)
+**典型工作方式**: 会从领域知识库中检索相关论文，对比方法、数据集、实验结果，判断该工作的真实定位。
 
-三智能体完成独立评审后，系统自动综合：
+**输出风格**: 宏观视角、关注论文在领域全景中的位置、建议补充的基线和方法。
 
-- **共识优势**: 三位审稿人均认可的强项
-- **共识风险**: 三位审稿人均关注的问题（最高优先级）
-- **侧重差异**: 不同视角的关注点分歧
-- **关键问题排序**: 按严重度 Fatal > Major > Moderate > Minor 排列
+### Agent 3 — 通才审稿人 (General Reviewer)
+
+**核心使命**: 从写作质量和可读性角度，确保论文能够被广泛读者理解。
+
+**审查清单**:
+- **段落逻辑流**: 每段是否有 topic sentence → evidence → transition？段落间连接是否自然？
+- **贡献展示**: Introduction 是否在首段清晰列出 2-4 条贡献？
+- **Claim-Evidence 对齐**: 每个 claim 在实验部分是否有对应证据？
+- **术语一致性**: 同一概念是否全文使用统一术语？缩写首次出现是否定义？
+- **图表叙述**: 每个图表在正文中是否被充分讨论？caption 是否 self-contained？
+- **LaTeX 格式**: 编译是否零错误？表格是否溢出？引用是否完整？
+- **盲审合规**: 是否无意中暴露作者身份？
+
+**典型工作方式**: 像一位非该子领域的学者阅读——不能被专业术语遮挡，必须能无障碍理解核心贡献。
+
+**输出风格**: 关注 clarity 和 presentation，提出具体的文字修改建议。
+
+## 关于 Sub-Agent 的说明
+
+当前三智能体架构暂不引入 sub-agent。理由：
+
+1. **审稿是判断性任务，非生成性任务**——审稿人需要全局视野来形成整体判断，拆分为 sub-agent 会导致碎片化评估，失去 "这篇论文到底能不能发" 的整体感
+2. **审稿独立性至关重要**——sub-agent 会引入 coordination overhead，破坏评审独立性
+3. **三智能体的输出已经足够结构化和全面**——每个 agent 的输出涵盖其专业领域的所有关键维度
+
+当审稿需求扩展到多篇论文对比、期刊级批量审稿、或需要专项检查（如数学公式推导验证）时，可考虑引入专项 sub-agent。
 
 ## 审核模式
 
 | 模式 | 覆盖内容 | 参与智能体 |
 |------|---------|:--:|
-| `scientific` | 科学创新性、技术健全性、实验证据、相关工作 | Agent 1 + 2 |
-| `writing` | 段落逻辑、贡献展示、术语一致性、图表叙述 | Agent 3 |
-| `format` | LaTeX编译、引用完整性、图表质量、页面限制 | Agent 3 |
-| `full` | 以上全部 + 完整性审计 + 跨审稿综合 | Agent 1 + 2 + 3 |
+| `scientific` | 创新性、健全性、实验证据、相关工作 | Agent 1 + 2 |
+| `writing` | 段落逻辑、贡献展示、术语一致性 | Agent 3 |
+| `format` | LaTeX、引用完整性、图表、页面 | Agent 3 |
+| `full` | 全部 + 完整性审计 + 跨审稿综合 | 1 + 2 + 3 |
+
+## 安装
+
+### Hermes Agent
+
+```bash
+# 通过 Hermes Hub (推荐)
+hermes skills install paper-super-reviewer
+
+# 手动安装
+mkdir -p ~/.hermes/skills/research/paper-super-reviewer
+cp SKILL.md ~/.hermes/skills/research/paper-super-reviewer/
+cp -r templates/ ~/.hermes/skills/research/paper-super-reviewer/
+```
+
+### Claude Code
+
+```bash
+# 手动安装
+mkdir -p ~/.claude/skills/paper-super-reviewer
+cp SKILL.md ~/.claude/skills/paper-super-reviewer/
+cp -r templates/ ~/.claude/skills/paper-super-reviewer/
+
+# 在 Claude Code 会话中加载
+/claude skill load paper-super-reviewer
+```
+
+或直接放入项目级 skill 目录：
+```bash
+mkdir -p .claude/skills/paper-super-reviewer
+cp SKILL.md .claude/skills/paper-super-reviewer/
+```
+
+### Codex CLI (OpenAI)
+
+```bash
+# 手动安装到 Codex skills 目录
+mkdir -p ~/.codex/skills/paper-super-reviewer
+cp SKILL.md ~/.codex/skills/paper-super-reviewer/
+cp -r templates/ ~/.codex/skills/paper-super-reviewer/
+
+# 在 Codex 会话中使用
+# Codex 会自动发现 ~/.codex/skills/ 下的 skill 文件
+```
 
 ## 使用方式
 
@@ -84,34 +149,23 @@ metadata:
 审核论文: path/to/paper.tex, mode=full
 ```
 
-## 输出格式
+## 输出格式 (full mode)
 
 ```markdown
 # Paper Super Review Report
-## Review Setup (审核设置)
-## Paper Summary (论文摘要)
-## Quantitative Scorecard (定量评分卡, 6维×5分制)
-## Reviewer Panel (三智能体独立审稿意见)
-## Cross-Review Synthesis (跨审稿综合)
-## Reference Quality Audit (引用质量审计)
-## Format & LaTeX Audit (格式检查)
-## Integrity Audit (完整性审计)
-## Concern-to-Action Table (关注-行动表)
-## AC / Meta-Review (最终审稿决定)
+## Review Setup
+## Paper Summary
+## Quantitative Scorecard (6维 × 5分制 = 30总分)
+## Reviewer 1 — 方法论审稿人
+## Reviewer 2 — 领域审稿人
+## Reviewer 3 — 通才审稿人
+## Cross-Review Synthesis
+## Reference Quality Audit
+## Format & LaTeX Audit
+## Integrity Audit
+## Concern-to-Action Table
+## AC / Meta-Review
 ```
-
-## 评分体系
-
-六维度 1-5 分制，总分 30：
-
-| 维度 | 评估内容 |
-|------|---------|
-| Novelty | 与 SOTA 的实质性差异 |
-| Soundness | 方法论正确性、实验设计 |
-| Evidence | 实验充分性、统计显著性 |
-| Related Work | 相关工作覆盖度 |
-| Reproducibility | 代码/数据/超参完整性 |
-| Significance | 对领域的潜在影响 |
 
 ## 红线和禁止事项
 
