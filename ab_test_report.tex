@@ -1,0 +1,339 @@
+% BigAlpha 2026 — AB Test Report (Revised after Peer Review)
+% ACM Conference Format (acmart)
+\RequirePackage{amsmath,amssymb}
+\let\Bbbk\relax
+\documentclass[sigconf,10pt]{acmart}
+
+\usepackage{booktabs}
+\usepackage{multirow}
+\usepackage{graphicx}
+\usepackage{longtable}
+\usepackage{array}
+
+% ACM Metadata
+\acmConference[ACML 2026]{Asian Conference on Machine Learning}{Dec 2026}{Beijing, China}
+\acmYear{2026}
+\setcopyright{none}
+\settopmatter{printacmref=false}
+
+\title{BigAlpha 2026: A Systematic Benchmark of 20+ Deep Learning Models for End-to-End Stock Return Prediction}
+
+\author{Zhenhao Li}
+\affiliation{%
+  \institution{XJTLU / University of Liverpool}
+  \city{Suzhou}
+  \country{China}
+}
+\email{omitted@blind.review}
+
+\begin{document}
+
+\begin{abstract}
+We present a comprehensive benchmark infrastructure of 23 deep learning and gradient-boosted models for end-to-end stock return prediction, built for the BigAlpha 2026 competition. Our model zoo spans five architectural families: (1) financial foundation models (Kronos~\cite{kronos2025}), (2) time-series transformers (Autoformer~\cite{wu2021autoformer}, Informer~\cite{zhou2021informer}, TimesNet~\cite{wu2023timesnet}, PatchTST~\cite{nie2023patchtst}), (3) recurrent architectures (LSTM~\cite{hochreiter1997long}, GRU~\cite{cho2014learning}), (4) Bayesian-optimized tree models (LightGBM~\cite{ke2017lightgbm}, XGBoost~\cite{chen2016xgboost}), and (5) multi-agent reinforcement learning (CTDE-MARL~\cite{ctde2026acml}). All models operate on raw OHLCVA features with zero feature engineering. We implement TPE-based Bayesian hyperparameter optimization~\cite{bergstra2011algorithms,snoek2012practical} via Optuna~\cite{akiba2019optuna} across 10 model families. A local baseline test on 6 models (10 A+H stocks, CPU, 20 epochs) confirms that daily data alone is insufficient for cross-sectional prediction (max IC = +0.038). We provide a three-phase competition strategy targeting IC $>$ 0.08 through IC-weighted ensemble of Bayesian-optimized models on GPU with minute-frequency data.
+\end{abstract}
+
+\maketitle
+
+%=============================================================================
+\section{Introduction}
+%=============================================================================
+
+The BigAlpha 2026 Global University League, organized by BigQuant, challenges participants to build end-to-end models predicting cross-sectional stock returns from raw market data. The End-to-End Price Prediction track imposes: (1) zero feature engineering, (2) input fields $\le 100$, (3) parameters $\in [10^5, 10^8]$, (4) from-scratch training, and (5) $\le 3$ hours GPU inference. Scoring weights: Rank IC (25\%), ICIR (25\%), Sharpe (25\%), and Stress robustness (25\%).
+
+We present the model zoo and training infrastructure built for this competition. Drawing on our prior work on CTDE-MARL for portfolio management~\cite{ctde2026acml} and recent time-series architectures, we implement 23 models and apply TPE-based Bayesian optimization to each. This report documents: (1) the model design (§2), (2) Bayesian optimization search spaces (§3), (3) local baseline experiments (§4), and (4) competition submission strategy (§5).
+
+\paragraph{Contributions.} (1) A unified 23-model benchmark codebase for E2E stock prediction. (2) TPE-based Bayesian optimization covering 10 model families with 7--10 parameter search spaces. (3) Local baseline experiments validating the necessity of GPU and minute-frequency data. (4) A three-phase competition strategy informed by model characteristics.
+
+\paragraph{Scope and Limitations.} This report documents the \emph{infrastructure} and \emph{local baseline} — BigQuant GPU experiments with Bayesian optimization are in progress and will be reported separately. Results are currently limited to CPU-based daily-frequency evaluation; conclusions about relative model performance require GPU experiments. Missing baselines include iTransformer, DLinear, Mamba, and TimesFM which will be added in future work.
+
+%=============================================================================
+\section{Model Zoo}
+%=============================================================================
+
+All models accept raw 6-dimensional OHLCVA sequences (open, high, low, close, volume, amount) with configurable lookback windows. Each model family has a corresponding Bayesian optimizer (Table~\ref{tab:models}).
+
+\subsection{Financial Foundation Models}
+
+\textbf{Kronos}~\cite{kronos2025} is a decoder-only Transformer pre-trained on 12B+ K-line records from 45+ exchanges. The BSQ tokenizer converts OHLCVA into discrete tokens, naturally satisfying the zero-feature-engineering constraint. Variants: Kronos-mini (4.1M), Kronos-small (24.7M), Kronos-base (102.3M).
+
+\subsection{Time-Series Transformers}
+
+\textbf{Autoformer}~\cite{wu2021autoformer} uses auto-correlation and progressive decomposition. \textbf{Informer}~\cite{zhou2021informer} uses ProbSparse attention ($O(L \log L)$). \textbf{TimesNet}~\cite{wu2023timesnet} transforms 1D$\to$2D via FFT then applies Inception convolutions. \textbf{PatchTST}~\cite{nie2023patchtst} segments sequences into patches with channel-independent Transformers. Standard \textbf{Transformer}~\cite{vaswani2017attention} serves as baseline.
+
+\subsection{Recurrent Architectures}
+
+\textbf{LSTM}~\cite{hochreiter1997long} and \textbf{GRU}~\cite{cho2014learning} encode 60-day sequences. From our ACML 2026 study~\cite{ctde2026acml}, raw-OHLCVA LSTM achieves Calmar 6.05 vs. MLP on 53 features (Calmar 6.19) with 89\% fewer inputs. \textbf{BiLSTM} adds bidirectional context; \textbf{LSTM+Attention} uses learned temporal pooling.
+
+\subsection{Bayesian-Optimized Tree Models}
+
+\textbf{LightGBM}~\cite{ke2017lightgbm} and \textbf{XGBoost}~\cite{chen2016xgboost} operate on flattened OHLCVA windows (60$\times$6=360 features). Both are optimized via Optuna TPE with 9-parameter search.
+
+\subsection{Multi-Agent Reinforcement Learning}
+
+\textbf{CTDE-MARL}~\cite{ctde2026acml,lowe2017multi} uses FactorEncoder$\to$ConfidenceGate($\tau{=}0.5$)$\to$StrategyNet with CentralizedCritic. From our ablation~\cite{ctde2026acml}, the centralized critic accounts for $\sim$50\% of Calmar gain; the gate+IC-loss pair prevents strategy collapse.
+
+\begin{table}[htbp]
+\centering
+\caption{Model zoo summary. $\dagger$: tested locally; $\ddagger$: Bayesian implementation complete, experiments pending.}
+\label{tab:models}
+\small
+\begin{tabular}{@{}llrl@{}}
+\toprule
+\textbf{Family} & \textbf{Models} & \textbf{Params} & \textbf{Status} \\
+\midrule
+Foundation & Kronos (mini/small/base)$\ddagger$ & 4.1M--102.3M & Code complete \\
+Temporal Transformer & Autoformer$\ddagger$, Informer$\ddagger$, TimesNet$\ddagger$ & 2--3M & Code complete \\
+ & PatchTST$\ddagger$, Transformer$\dagger$ & 132K--2M & 1 tested \\
+Recurrent & LSTM$\dagger$, GRU$\dagger$, BiLSTM$\dagger$ & 10--18K & 3 tested \\
+ & LSTM+Attn$\dagger$, BiGRU, Deep LSTM & 8--150K & 1 tested \\
+Tree (Bayesian) & LGBM$\ddagger$, XGBoost$\ddagger$ & N/A & Code complete \\
+MARL & CTDE-MARL (LSTM/GRU/MLP) & 30--50K & Code complete \\
+Knowledge & CausalKG Event Detector & N/A & Code complete \\
+Ensemble & IC-weighted, Stacking & --- & Code complete \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+%=============================================================================
+\section{Bayesian Hyperparameter Optimization}
+%=============================================================================
+
+We apply Tree-structured Parzen Estimator (TPE)~\cite{bergstra2011algorithms} via Optuna~\cite{akiba2019optuna} to 10 model families. Each search runs 50 trials (20 epochs/trial, validated on Rank IC). Search spaces are in Table~\ref{tab:bayesian}. \textbf{Note:} search spaces are implemented but GPU experiments are pending — results will be added in revision.
+
+\begin{table*}[htbp]
+\centering
+\caption{TPE Bayesian search spaces (50 trials each, 20 epochs/trial, objective = validation Rank IC). All spaces implemented; GPU experiments pending.}
+\label{tab:bayesian}
+\footnotesize
+\begin{tabular}{@{}llp{6.5cm}l@{}}
+\toprule
+\textbf{Model} & \textbf{\#P} & \textbf{Search Space} & \textbf{Trials} \\
+\midrule
+BayesianKronos & 8 & variant$\in$\{mini,small\}, pred\_h$\in$[64,512], lr$\in$[1e-5,5e-3], bs$\in$[32,256], lookback$\in$[20,120] & 50 \\
+BayesianAutoformer & 9 & d\_model$\in$[64,512], L$\in$[1,5], heads$\in$\{4,8\}, d\_ff$\in$[256,2048], lr$\in$[1e-5,5e-3] & 50 \\
+BayesianInformer & 9 & Same as Autoformer & 50 \\
+BayesianTimesNet & 9 & d\_model$\in$[64,512], L$\in$[1,4], d\_ff$\in$[16,64], top\_k$\in$[3,8], lr$\in$[1e-5,5e-3] & 50 \\
+BayesianPatchTST & 10 & patch$\in$[8,32], stride$\in$[4,16], d\_model$\in$[64,256], L$\in$[1,4], heads$\in$\{4,8\} & 50 \\
+BayesianTransformer & 8 & d\_model$\in$[64,512], L$\in$[1,6], heads$\in$\{4,8\}, d\_ff$\in$[256,2048], lr$\in$[1e-5,5e-3] & 50 \\
+BayesianLSTM & 7 & hidden$\in$[32,256], L$\in$[1,4], drop$\in$[0,0.5], lr$\in$[1e-4,1e-2], bidir$\in$\{T,F\} & 50 \\
+BayesianGRU & 7 & Same as LSTM & 50 \\
+BayesianLGBM & 9 & n\_est$\in$[100,2000], depth$\in$[3,15], lr$\in$[0.01,0.3], leaves$\in$[15,255], $\alpha$/$\lambda$$\in$[1e-8,10] & 50 \\
+BayesianXGBoost & 9 & n\_est$\in$[100,2000], depth$\in$[3,15], lr$\in$[0.01,0.3], $\gamma$$\in$[1e-8,5], $\alpha$/$\lambda$$\in$[1e-8,10] & 50 \\
+\bottomrule
+\end{tabular}
+\end{table*}
+
+\subsection{Algorithm}
+
+Algorithm~\ref{alg:tpe} formalizes the TPE-based Bayesian optimization procedure used across all 10 model families.
+
+\begin{figure}[htbp]
+\centering
+\fbox{\begin{minipage}{0.85\linewidth}
+\small
+\textbf{Algorithm 1: TPE Bayesian Hyperparameter Optimization}
+
+\noindent\textbf{Input:} Model family $\mathcal{M}$, search space $\Theta$, dataset $\mathcal{D}$, trials $T=50$\\
+\textbf{Output:} Optimal hyperparameters $\theta^*$, best validation IC $s^*$
+
+\begin{enumerate}
+  \item Initialize TPE sampler with random 10 trials
+  \item \textbf{for} $t = 1$ \textbf{to} $T$ \textbf{do}
+  \begin{enumerate}
+    \item Sample $\theta_t \sim \text{TPE}(\Theta \mid \text{history})$
+    \item Build model $m_t = \mathcal{M}(\theta_t)$
+    \item Train $m_t$ on $\mathcal{D}_{\text{train}}$ for 20 epochs
+    \item Compute $s_t = \text{RankIC}(m_t, \mathcal{D}_{\text{val}})$
+    \item Update TPE: fit $l(\theta) = P(\theta \mid s > \text{median})$, $g(\theta) = P(\theta \mid s \leq \text{median})$
+    \item Sample next $\theta$ where $l(\theta)/g(\theta)$ is maximized
+  \end{enumerate}
+  \item $\theta^* = \arg\max_t s_t$; retrain $m^*$ with $\theta^*$ for 50 epochs
+  \item \textbf{return} $(\theta^*, s^*)$
+\end{enumerate}
+\end{minipage}}
+\caption{TPE-based Bayesian hyperparameter optimization.}
+\label{alg:tpe}
+\end{figure}
+
+The TPE models $P(\theta \mid \text{score})$ by maintaining two Parzen-window density estimators: $l(\theta)$ for the top-performing trials and $g(\theta)$ for the remaining trials. Each iteration samples from the region where $l(\theta)/g(\theta)$ is maximized --- i.e., where promising hyperparameters are likely but not yet fully explored. This balances exploitation (sampling near known good regions) with exploration (avoiding oversampling of already-dense regions).
+
+\subsection{Planned GPU Experiments}
+
+The Bayesian optimization described above requires GPU access for the deep learning models. We plan the following experiments on BigQuant GPU notebooks:
+
+\begin{itemize}
+  \item \textbf{Model comparison}: Train all 10 Bayesian-optimized models on 1-minute OHLCVA data with 1000-stock cross-section
+  \item \textbf{Ablation study}: Controlled comparison of (a) encoder architecture, (b) lookback window, (c) IC loss weight $\alpha$, (d) confidence gate threshold $\tau$
+  \item \textbf{Ensemble ablation}: IC-weighted vs. equal-weight vs. stacking ensemble on top-5 models
+  \item \textbf{Robustness}: Multi-seed evaluation ($\ge 3$ seeds) with mean$\pm$std reporting
+  \item \textbf{Regime analysis}: Bull market (2024 H2) vs. bear market (2025 Q1) performance comparison
+\end{itemize}
+
+%=============================================================================
+\section{Local Baseline Experiment}
+%=============================================================================
+
+\subsection{Setup}
+We validate the pipeline locally before BigQuant deployment. \textbf{Important caveat:} this is a \emph{smoke test}, not a competitive evaluation. The test uses:
+\begin{itemize}
+  \item \textbf{Data}: 10 A+H stocks, daily OHLCVA, 60-day lookback, Jan 2025--Apr 2026
+  \item \textbf{Samples}: 2,146 train / 300 test
+  \item \textbf{Hardware}: CPU (Intel i7)
+  \item \textbf{Training}: 20 epochs, batch 128, lr $10^{-3}$, Adam, MSE loss, seed 42
+  \item \textbf{Hyperparameters}: All defaults (no Bayesian optimization)
+\end{itemize}
+
+\subsection{Results}
+
+Table~\ref{tab:local} reports results. All models exhibit near-zero cross-sectional IC. MLP achieves marginally positive IC (+0.038) due to lower variance under data scarcity.
+
+\begin{table}[htbp]
+\centering
+\caption{Local baseline (CPU, daily, 10 stocks, 20 epochs, single seed=42).}
+\label{tab:local}
+\begin{tabular}{@{}lrrrrr@{}}
+\toprule
+\textbf{Model} & \textbf{Params} & \textbf{MSE} & \textbf{Rank IC} & \textbf{ICIR} & \textbf{Time (s)} \\
+\midrule
+MLP (baseline)   & 54,529 & 0.0020 & \textbf{+0.038} & +0.43 & 58.1 \\
+BiLSTM           & 10,305 & 0.0011 & +0.008 & +0.60 & 48.9 \\
+Transformer      & 132,481 & 0.0010 & --0.055 & +0.12 & 140.0 \\
+GRU              & 13,889 & 0.0011 & --0.061 & --1.40 & 37.7 \\
+LSTM+Attention   & 18,562 & 0.0010 & --0.093 & --0.37 & 32.0 \\
+LSTM             & 18,497 & 0.0011 & --0.138 & --1.29 & 29.7 \\
+\midrule
+IC-Ensemble      & --- & 0.0010 & --0.022 & --- & --- \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Analysis}
+
+The near-zero IC is expected: daily OHLCVA with 2,146 samples provides minimal cross-sectional signal. MLP's marginal positive IC reflects low variance under data scarcity. Recurrent models exhibit negative IC from overfitting to noise. The Transformer (132K params) is severely underdetermined (16 samples/param). This confirms three necessary conditions for competition success: (1) \textbf{minute-frequency data} (480$\times$ observations), (2) \textbf{1000-stock cross-section} (100$\times$ for IC), and (3) \textbf{Bayesian HPO} to escape defaults.
+
+\paragraph{Statistical note:} Single-seed results are insufficient for ranking. Multi-seed experiments (3+ seeds) will be reported with GPU results.
+
+%=============================================================================
+\section{Competition Strategy}
+%=============================================================================
+
+We propose a three-phase strategy (Table~\ref{tab:strategy}):
+
+\begin{table}[htbp]
+\centering
+\caption{Three-phase submission strategy.}
+\label{tab:strategy}
+\begin{tabular}{@{}lllll@{}}
+\toprule
+\textbf{Phase} & \textbf{Dates} & \textbf{Models} & \textbf{Target IC} & \textbf{Sub/day} \\
+\midrule
+P1: Baseline    & Jul 1--7   & LSTM, GRU, BayesianLGBM/XGBoost & $>$0.03 & 3 \\
+P2: Bayesian    & Jul 8--21  & Kronos, Autoformer, Informer, TimesNet, PatchTST & $>$0.05 & 3 \\
+P3: Ensemble    & Jul 22--Aug 5 & IC-Weighted Top-5 Ensemble & $>$0.08 & 1--2 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\textbf{Phase 1} establishes baselines with fast-to-train models at maximum submission frequency. \textbf{Phase 2} deploys 10 Bayesian-optimized deep models, each undergoing 50 TPE trials on GPU. \textbf{Phase 3} combines best models via IC-weighted ensemble ($w_i \propto e^{|\text{IC}_i|}$). Private leaderboard: best public model retrained from scratch in isolated environment.
+
+%=============================================================================
+\section{Limitations}
+%=============================================================================
+
+\begin{enumerate}
+  \item \textbf{Experimental incompleteness:} Only 6 of 23 models tested; Bayesian optimization experiments are pending GPU access. Current results are smoke tests, not competitive evaluations.
+  \item \textbf{Data constraints:} Daily-frequency data is insufficient for cross-sectional prediction. Minute-frequency data on BigQuant platform is required for meaningful IC.
+  \item \textbf{Statistical rigor:} Single-seed results lack error bars. Multi-seed experiments ($\ge 3$ seeds) are planned.
+  \item \textbf{Missing baselines:} iTransformer, DLinear, Mamba, and TimesFM are not yet included.
+  \item \textbf{Task specificity:} Results are specific to BigAlpha 2026 competition constraints and may not generalize to other prediction tasks.
+  \item \textbf{No transaction costs:} Current evaluation ignores market impact and execution costs.
+\end{enumerate}
+
+%=============================================================================
+\section{Conclusion}
+%=============================================================================
+
+We have built a 23-model benchmark infrastructure for the BigAlpha 2026 competition, spanning foundation models, time-series transformers, recurrent architectures, Bayesian-optimized trees, and multi-agent RL. TPE-based Bayesian optimization covers 10 families with 7--10 parameter spaces. Local smoke testing confirms the necessity of GPU and minute-frequency data. A three-phase strategy targets IC $>$ 0.08 through systematic optimization and IC-weighted ensembling. Code is available at the project repository.
+
+%=============================================================================
+\bibliographystyle{ACM-Reference-Format}
+\begin{thebibliography}{20}
+
+\bibitem{kronos2025}
+S.~Shi et al.
+\newblock Kronos: A Foundation Model for the Language of Financial Markets.
+\newblock \emph{AAAI}, 2026.
+
+\bibitem{wu2021autoformer}
+H.~Wu, J.~Xu, J.~Wang, and M.~Long.
+\newblock Autoformer: Decomposition Transformers with Auto-Correlation.
+\newblock \emph{NeurIPS}, 2021.
+
+\bibitem{zhou2021informer}
+H.~Zhou et al.
+\newblock Informer: Beyond Efficient Transformer for Long Sequence Time-Series Forecasting.
+\newblock \emph{AAAI}, 2021.
+
+\bibitem{wu2023timesnet}
+H.~Wu, T.~Hu, Y.~Liu, H.~Zhou, J.~Wang, and M.~Long.
+\newblock TimesNet: Temporal 2D-Variation Modeling for General Time Series Analysis.
+\newblock \emph{ICLR}, 2023.
+
+\bibitem{nie2023patchtst}
+Y.~Nie, N.~H. Nguyen, P.~Sinthong, and J.~Kalagnanam.
+\newblock A Time Series is Worth 64 Words: Long-term Forecasting with Transformers.
+\newblock \emph{ICLR}, 2023.
+
+\bibitem{vaswani2017attention}
+A.~Vaswani et al.
+\newblock Attention Is All You Need.
+\newblock \emph{NeurIPS}, 2017.
+
+\bibitem{ke2017lightgbm}
+G.~Ke et al.
+\newblock LightGBM: A Highly Efficient Gradient Boosting Decision Tree.
+\newblock \emph{NeurIPS}, 2017.
+
+\bibitem{chen2016xgboost}
+T.~Chen and C.~Guestrin.
+\newblock XGBoost: A Scalable Tree Boosting System.
+\newblock \emph{KDD}, 2016.
+
+\bibitem{lowe2017multi}
+R.~Lowe, Y.~Wu, A.~Tamar, J.~Harb, P.~Abbeel, and I.~Mordatch.
+\newblock Multi-Agent Actor-Critic for Mixed Cooperative-Competitive Environments.
+\newblock \emph{NeurIPS}, 2017.
+
+\bibitem{ctde2026acml}
+Z.~Li et al.
+\newblock What Matters in Multi-Agent Reinforcement Learning for Portfolio Management?
+\newblock \emph{ACML}, 2026. Under review.
+
+\bibitem{bergstra2011algorithms}
+J.~Bergstra, R.~Bardenet, Y.~Bengio, and B.~K\'{e}gl.
+\newblock Algorithms for Hyper-Parameter Optimization.
+\newblock \emph{NeurIPS}, 2011.
+
+\bibitem{snoek2012practical}
+J.~Snoek, H.~Larochelle, and R.~P. Adams.
+\newblock Practical Bayesian Optimization of Machine Learning Algorithms.
+\newblock \emph{NeurIPS}, 2012.
+
+\bibitem{akiba2019optuna}
+T.~Akiba, S.~Sano, T.~Yanase, T.~Ohta, and M.~Koyama.
+\newblock Optuna: A Next-generation Hyperparameter Optimization Framework.
+\newblock \emph{KDD}, 2019.
+
+\bibitem{hochreiter1997long}
+S.~Hochreiter and J.~Schmidhuber.
+\newblock Long Short-Term Memory.
+\newblock \emph{Neural Computation}, 9(8):1735--1780, 1997.
+
+\bibitem{cho2014learning}
+K.~Cho et al.
+\newblock Learning Phrase Representations using RNN Encoder-Decoder.
+\newblock \emph{EMNLP}, 2014.
+
+\end{thebibliography}
+
+\end{document}
