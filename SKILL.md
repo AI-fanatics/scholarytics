@@ -1,7 +1,7 @@
 ---
 name: paper-super-reviewer
-description: "端到端学术论文超审系统 — 12 个独立 Skill × 6 智能体 × 6 种审核模式。从快速扫描到完整超审，每个智能体可独立调用。"
-version: 3.0.0
+description: "端到端学术论文超审系统 — 15 个独立 Skill，每个包含完整的 SKILL.md + manifest.yaml + 结构化 JSON 输出。从快速扫描到完整超审，每个智能体可独立调用。"
+version: 4.0.0
 author: TheeTarnished
 license: MIT
 platforms: [linux, macos, windows]
@@ -124,3 +124,34 @@ cp -R skills/* ~/.codex/skills/
 快速扫描: path/to/paper.pdf              # → Quick Scan
 匹配会议: path/to/review_report.json     # → Venue Matcher
 ```
+
+## 审核触发规则 ⚠️
+
+当用户说"审核这篇论文"而未指定具体文件时:
+- **必须确认**是哪个论文文件，列出桌面上的候选 (.tex/.pdf)
+- 不要假定是最近讨论过的论文
+- 教训: 曾错误审核了 ACML 论文而非用户要的何恺明 ResNet
+
+## 本地依赖路径
+
+| 体系 | 路径 | 用途 |
+|------|------|------|
+| PaperSpine v3.3.0 | `C:/Users/82578/Desktop/PaperSpine_repo/` | 16 scripts (integrity_audit, structured_review, citation_quality...) |
+| Nature-Skills | `C:/Users/82578/Desktop/nature-skills_repo/` | _shared + manifest 动态路由 + static/21 fragments |
+| CCFA-Skills | `C:/Users/82578/Desktop/CCFA-Skills_repo/` | ccf-common governance + venue guides |
+
+## GitHub Push
+
+```bash
+# gh CLI portable
+/c/Users/82578/Desktop/gh_portable/bin/gh auth login --web
+/c/Users/82578/Desktop/gh_portable/bin/gh repo create TheeTarnished/super-review-repo --public --source=. --push
+```
+
+## 整合方法论
+
+从外部 GitHub skill 仓库整合为 Hermes skill:
+1. `git clone --depth 1` 完整仓库，不只 curl SKILL.md
+2. 理解共享层 (_shared, ccf-common) 和路由系统 (manifest/static)
+3. 保留可执行脚本路径，让 Hermes 能实际运行
+4. 标注版本号和本地路径
