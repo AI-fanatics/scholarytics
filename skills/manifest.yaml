@@ -1,62 +1,120 @@
-# paper-super-reviewer · Skill Manifest
+# paper-super-reviewer v4.0 · Skill Manifest
+# 15 skills · 6 agent + 3 quick + 4 audit + 2 output
+# 遵循 Nature-Skills 标准: 每个 skill 独立可用 + manifest 路由
 
 skills:
+  # === 主编排 ===
   - name: paper-super-reviewer
-    description: "主编排器 — 6智能体全模式论文超审"
-    agents: [methodology, domain, narrative, format, reference, integrity]
-    modes: [quick, full, science, writing, format, integrity]
+    path: paper-super-reviewer
+    type: orchestrator
+    description: "15-skill 主编排器。输入论文 → 调度全部子 skill → 输出结构化审稿报告"
+    triggers: ["paper-review", "审核论文", "review paper"]
+    children: [methodology, domain, narrative, format, reference, integrity, quickscan, scorecard, venumatch, latex-audit, citation-audit, claim-audit, data-audit]
 
+  # === 核心审稿层 (6 Agent) ===
   - name: paper-methodology-reviewer
-    description: "Agent 1: 方法论仲裁者 — 12项实验设计检查"
-    standalone: true
-    mode: science
+    path: paper-methodology-reviewer
+    type: agent
+    agent_id: 1
+    persona: "严谨的实证主义者 — 只相信可复现的结果"
+    description: "实验设计审核 × 统计检验验证 × 可复现性评估"
+    triggers: ["审核方法论", "审核实验设计", "check methodology"]
+    input: [".tex", ".pdf"]
+    output: "JSON {scores, ablation_audit, statistical_issues, design_flaws}"
 
   - name: paper-domain-reviewer
-    description: "Agent 2: 领域导航者 — 10项创新性检查"
-    standalone: true
-    mode: science
+    path: paper-domain-reviewer
+    type: agent
+    agent_id: 2
+    persona: "活的文献字典 — 瞬间定位论文在领域全景中的位置"
+    description: "创新定位 × SOTA 对比 × 贡献评估 × 遗漏基线检测"
+    triggers: ["审核创新性", "审核领域", "check novelty"]
 
   - name: paper-narrative-editor
-    description: "Agent 3: 叙事编辑者 — 12项写作质量检查"
-    standalone: true
-    mode: writing
+    path: paper-narrative-editor
+    type: agent
+    agent_id: 3
+    persona: "前 Nature 编辑 — 好论文应让非该领域的聪明读者也能读懂"
+    description: "写作质量 × 逻辑流 × AI-ism 检测 × 可读性评分"
+    triggers: ["审核写作", "审核叙事", "check writing"]
 
   - name: paper-format-guardian
-    description: "Agent 4: 格式守卫者 — LaTeX+图表审计"
-    standalone: true
-    mode: format
+    path: paper-format-guardian
+    type: agent
+    agent_id: 4
+    persona: "完美主义者 — 格式就是学术态度"
+    description: "LaTeX 3遍编译 × 全部warning分析 × 精确修复代码"
+    triggers: ["检查格式", "LaTeX检查", "check format", "latex audit"]
 
   - name: paper-reference-auditor
-    description: "Agent 5: 引用审计者 — 引用质量评分(1-5)"
-    standalone: true
-    mode: format
+    path: paper-reference-auditor
+    type: agent
+    agent_id: 5
+    persona: "文献计量学专家 — 引用网络揭示一切"
+    description: "引用质量评分 (1-5) × BibTeX 完整性 × 香火引用检测 × 遗漏推荐"
+    triggers: ["检查引用", "审核引用", "check references"]
 
   - name: paper-integrity-detective
-    description: "Agent 6: 完整性侦探 — 声称-证据对齐"
-    standalone: true
-    mode: integrity
+    path: paper-integrity-detective
+    type: agent
+    agent_id: 6
+    persona: "怀疑论者 — 数字不会说谎，但作者可能会"
+    description: "Claim-evidence 对齐 × 数字一致性 × 数据诚实检测"
+    triggers: ["检查完整性", "审核完整性", "check integrity"]
 
+  # === 快速评估层 (3 Skill) ===
   - name: paper-quick-scan
-    description: "5分钟快速扫描 — 论文一页纸画像"
-    standalone: true
-    mode: quick
+    path: paper-quick-scan
+    type: quick
+    description: "5分钟论文画像: 贡献类型 + 方法快照 + 红/绿旗标记 + 预估评分"
+    triggers: ["快速扫描", "quick scan", "论文画像"]
 
-  - name: paper-latex-check
-    description: "LaTeX专项 — 编译审计+精确修复代码"
-    standalone: true
-    mode: format
+  - name: paper-scorecard
+    path: paper-scorecard
+    type: quick
+    description: "CCF 6维定量评分卡: 每维1-5分 + 加权总分 + 置信区间 + 建议决定"
+    triggers: ["评分卡", "scorecard", "打分"]
 
-  - name: paper-citation-check
-    description: "引用专项 — BibTeX完整性+香火检测"
-    standalone: true
-    mode: format
+  - name: paper-venue-match
+    path: paper-venue-match
+    type: quick
+    description: "投稿匹配: CCF分层推荐 + SCI期刊推荐 + 接受概率估计"
+    triggers: ["匹配会议", "投稿推荐", "venue match"]
 
-  - name: paper-claim-tracker
-    description: "声称追踪 — claim→evidence映射"
-    standalone: true
-    mode: integrity
+  # === 专项深度审计层 (4 Skill) ===
+  - name: paper-latex-audit
+    path: paper-latex-audit
+    type: audit
+    description: "LaTeX深度审计: 编译×3 + warning全解析 + 每项附修复代码"
+    triggers: ["LaTeX深度检查", "deep latex check"]
 
-  - name: paper-venue-matcher
-    description: "会议匹配 — CCF/SCI投稿推荐"
-    standalone: true
-    mode: post-review
+  - name: paper-citation-audit
+    path: paper-citation-audit
+    type: audit
+    description: "引用深度审计: 香火检测 + 语义对齐 + 引用网络分析"
+    triggers: ["引用深度检查", "deep citation check"]
+
+  - name: paper-claim-audit
+    path: paper-claim-audit
+    type: audit
+    description: "Claim深度审计: 声称提取 + 证据定位 + 虚假声称检测"
+    triggers: ["声称审计", "claim audit"]
+
+  - name: paper-data-audit
+    path: paper-data-audit
+    type: audit
+    description: "数据审计: 泄露检测 + 分布偏移 + 标注质量"
+    triggers: ["数据审计", "data audit"]
+
+  # === 产出层 (2 Skill) ===
+  - name: paper-rebuttal-builder
+    path: paper-rebuttal-builder
+    type: output
+    description: "Rebuttal 自动生成: 审稿意见 → 逐条回复策略 + 修改计划"
+    triggers: ["生成rebuttal", "rebuttal"]
+
+  - name: paper-slides-builder
+    path: paper-slides-builder
+    type: output
+    description: "答辩PPT生成: 论文 → 15页slides (背景/方法/实验/贡献)"
+    triggers: ["生成PPT", "生成slides", "slides"]
