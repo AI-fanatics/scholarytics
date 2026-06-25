@@ -1,66 +1,49 @@
 # Paper Super Reviewer / 论文超审
 
 [![Stars](https://img.shields.io/github/stars/TheeTarnished/paper-super-reviewer?style=social)](https://github.com/TheeTarnished/paper-super-reviewer)
-[![Version](https://img.shields.io/badge/version-2.1.0-blue)](https://github.com/TheeTarnished/paper-super-reviewer)
+[![Version](https://img.shields.io/badge/version-3.0.0-blue)](https://github.com/TheeTarnished/paper-super-reviewer)
 
 **[English](#english) | [中文](#中文)**
+
+受 **Nature-Skills** (袁一哲, 20K⭐) 的三审稿人面板哲学、**CCFA-Skills** 的定量评分卡和 **PaperSpine** 的完整性审计启发。
 
 ---
 
 ## English
 
-End-to-end academic paper review system — Hermes Agent Skill. Three specialized AI agents conduct parallel peer review, then synthesize findings into a structured review report.
+End-to-end academic paper review system — **6 specialized AI agents** conduct parallel peer review with distinct academic personalities.
 
-### Live Demo — ResNet (He et al., 2015)
+### Demo — ResNet (He et al., 2015)
 
 > 🏆 **30/30 — Landmark Paper. Unanimous Strong Accept.**
+→ **[Full Bilingual Review →](demo/RESNET_REVIEW.md)**
 
-| Dimension | Score |
-|-----------|:--:|
-| Novelty | 5/5 |
-| Soundness | 5/5 |
-| Evidence | 5/5 |
-| Related Work | 5/5 |
-| Reproducibility | 5/5 |
-| Significance | 5/5 |
+### 6 Agents
 
-→ **[Full Review Report →](demo/RESNET_REVIEW.md)** ← Three-agent panel + cross-review synthesis
+| # | Agent | Personality | Focus |
+|---|-------|------------|-------|
+| 1 | Methodology Arbiter | Rigorous empiricist | Experimental design, ablation, reproducibility |
+| 2 | Domain Navigator | Living encyclopedia | Novelty, SOTA positioning, contribution |
+| 3 | Narrative Editor | Former Nature editor | Writing clarity, flow, readability |
+| 4 | Format Guardian | Perfectionist | LaTeX, figures, page limits |
+| 5 | Reference Auditor | Bibliometrician | Citation quality, completeness |
+| 6 | Integrity Detective | Skeptic | Claim-evidence alignment, data consistency |
 
-### Architecture
-
-| Agent | Role | Focus |
-|-------|------|-------|
-| Agent 1 | Methodology Reviewer | Technical soundness, experimental design, reproducibility |
-| Agent 2 | Domain Reviewer | Novelty, SOTA comparison, contribution significance |
-| Agent 3 | General Reviewer | Writing quality, readability, formatting |
-
-### Features
-- Quantitative scorecard (6 dimensions × 5-point scale = 30 total)
-- Three independent agent opinions
-- Cross-review synthesis (consensus / risks / disagreements)
-- Reference quality audit
-- LaTeX format check
-- Integrity audit (claim-evidence alignment)
-- Concern-to-action table (sorted by severity)
+### Scoring
+- CCF 6-dim × 5pts = **30 total**
+- Nature 5-axis evaluation
+- Reference quality scoring
 
 ### Install
-
-**Hermes Agent**
 ```bash
+# Hermes Agent
 hermes skills install paper-super-reviewer
-```
 
-**Claude Code**
-```bash
-mkdir -p ~/.claude/skills/paper-super-reviewer
-cp SKILL.md ~/.claude/skills/paper-super-reviewer/
-# Usage: /claude skill load paper-super-reviewer
-```
+# Claude Code
+mkdir -p ~/.claude/skills/paper-super-reviewer && cp SKILL.md $_
 
-**Codex CLI**
-```bash
-mkdir -p ~/.codex/skills/paper-super-reviewer
-cp SKILL.md ~/.codex/skills/paper-super-reviewer/
+# Codex CLI (Nature-Skills compatible)
+mkdir -p ~/.codex/skills/paper-super-reviewer && cp -R . $_
 ```
 
 ### Usage
@@ -72,61 +55,35 @@ Review paper: path/to/paper.tex, mode=full
 
 ## 中文
 
-端到端学术论文超审系统 — Hermes Agent Skill。三个专业化 AI 智能体并行审稿，模拟真实学术评审全流程，输出结构化审稿报告。
+端到端学术论文超审系统 — **6 个专业化 AI 智能体**并行审稿，每个都有独特的学术人格。
 
-### 示范审稿 — ResNet (何恺明, 2015)
+### 示范 — ResNet (何恺明, 2015)
 
-> 🏆 **30/30 满分 — Landmark Paper. 三位审稿人一致 Strong Accept.**
+> 🏆 **30/30 满分 — Landmark Paper.**
+→ **[中英双语完整审稿 →](demo/RESNET_REVIEW.md)**
 
-| 维度 | 分数 | 审稿人评价 |
-|------|:--:|------|
-| 创新性 | 5/5 | 残差学习是深度学习史上最重要的架构创新 |
-| 健全性 | 5/5 | 教科书级实验设计 |
-| 证据 | 5/5 | ILSVRC 2015 全赛道冠军 + 20万+ 引用 |
-| 相关工作 | 5/5 | 准确定位并区分 Highway Networks |
-| 可复现 | 5/5 | 开源代码 + 精确超参 |
-| 重要性 | 5/5 | 启发了 Transformer、AlphaFold、GPT |
+### 六智能体
 
-→ **[完整审稿报告 →](demo/RESNET_REVIEW.md)** ← 三智能体详细意见 + 跨审稿综合
+| # | 智能体 | 人格 | 审查重点 |
+|---|--------|------|---------|
+| 1 | 方法论仲裁者 | 严谨的实证主义者 | 实验设计、消融、可复现 |
+| 2 | 领域导航者 | 活的文献字典 | 创新性、SOTA定位、贡献 |
+| 3 | 叙事编辑者 | 前 Nature 编辑 | 写作清晰度、流畅性 |
+| 4 | 格式守卫者 | 完美主义者 | LaTeX、图表、页数 |
+| 5 | 引用审计者 | 文献计量学家 | 引用质量、完整性 |
+| 6 | 完整性侦探 | 怀疑论者 | 声称-证据对齐、数据一致性 |
 
-### 三智能体架构
-
-| 智能体 | 角色 | 审查重点 |
-|--------|------|---------|
-| Agent 1 | 方法论审稿人 | 技术健全性、实验设计、可复现性 |
-| Agent 2 | 领域审稿人 | 创新性、SOTA 对比、贡献显著性 |
-| Agent 3 | 通才审稿人 | 写作质量、可读性、格式规范 |
-
-### 功能
-- 定量评分卡（6 维 × 5 分制 = 30 总分）
-- 三位智能体独立审稿意见
-- 跨审稿综合（共识优势 / 风险 / 分歧）
-- 引用质量审计
-- LaTeX 格式检查
-- 完整性审计（声称-证据对齐）
-- 关注-行动表（按严重度排序）
+### 评分
+- CCF 六维 × 5 分 = **30 总分**
+- Nature 五轴评估
+- 引用质量评分
 
 ### 安装
-
-**Hermes Agent**
 ```bash
 hermes skills install paper-super-reviewer
 ```
 
-**Claude Code**
-```bash
-mkdir -p ~/.claude/skills/paper-super-reviewer
-cp SKILL.md ~/.claude/skills/paper-super-reviewer/
-# 使用: /claude skill load paper-super-reviewer
-```
-
-**Codex CLI**
-```bash
-mkdir -p ~/.codex/skills/paper-super-reviewer
-cp SKILL.md ~/.codex/skills/paper-super-reviewer/
-```
-
-### 使用方式
+### 使用
 ```
 审核论文: path/to/paper.tex, mode=full
 ```
