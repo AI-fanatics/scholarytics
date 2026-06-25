@@ -1,8 +1,10 @@
 # Paper Super Reviewer / 论文超审
 
 [![Stars](https://img.shields.io/github/stars/TheeTarnished/paper-super-reviewer?style=social)](https://github.com/TheeTarnished/paper-super-reviewer)
-[![Version](https://img.shields.io/badge/version-4.0.0-blue)](https://github.com/TheeTarnished/paper-super-reviewer)
+[![Version](https://img.shields.io/badge/version-4.1.0-blue)](https://github.com/TheeTarnished/paper-super-reviewer)
 [![Skills](https://img.shields.io/badge/skills-15-green)](https://github.com/TheeTarnished/paper-super-reviewer/tree/main/skills)
+
+[![Star History Chart](https://api.star-history.com/svg?repos=TheeTarnished/paper-super-reviewer&type=Date)](https://star-history.com/#TheeTarnished/paper-super-reviewer&Date)
 
 **[English](#english) | [中文](#中文)**
 
