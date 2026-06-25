@@ -1,8 +1,8 @@
 # Scholarytics / 学术智审
 
-[![Stars](https://img.shields.io/github/stars/TheeTarnished/scholarytics?style=social)](https://github.com/TheeTarnished/scholarytics)
-[![Version](https://img.shields.io/badge/version-4.1.0-blue)](https://github.com/TheeTarnished/scholarytics)
-[![Skills](https://img.shields.io/badge/skills-15-green)](https://github.com/TheeTarnished/scholarytics/tree/main/skills)
+[![Stars](https://img.shields.io/github/stars/AI_Fanatics/scholarytics?style=social)](https://github.com/AI_Fanatics/scholarytics)
+[![Version](https://img.shields.io/badge/version-4.1.0-blue)](https://github.com/AI_Fanatics/scholarytics)
+[![Skills](https://img.shields.io/badge/skills-15-green)](https://github.com/AI_Fanatics/scholarytics/tree/main/skills)
 
 **Scholarytics** = Scholarly + Analytics · 学术智审
 
@@ -50,7 +50,7 @@ End-to-end academic paper review system — **15 independent skills** × **6 spe
 hermes skills install scholarytics
 
 # Full install (all 15 skills)
-git clone https://github.com/TheeTarnished/scholarytics.git
+git clone https://github.com/AI_Fanatics/scholarytics.git
 cp -R skills/* ~/.hermes/skills/research/
 ```
 
@@ -101,7 +101,7 @@ scholarytics-citation-audit paper.tex refs.bib    # Citation audit
 ### 安装
 ```bash
 hermes skills install scholarytics
-git clone https://github.com/TheeTarnished/scholarytics.git
+git clone https://github.com/AI_Fanatics/scholarytics.git
 cp -R skills/* ~/.hermes/skills/research/
 ```
 
@@ -115,4 +115,4 @@ scholarytics-citation-audit paper.tex refs.bib     # 引用深度审计
 
 ---
 
-[![Star History Chart](https://api.star-history.com/svg?repos=TheeTarnished/scholarytics&type=Date)](https://star-history.com/#TheeTarnished/scholarytics&Date)
+[![Star History Chart](https://api.star-history.com/svg?repos=AI_Fanatics/scholarytics&type=Date)](https://star-history.com/#AI_Fanatics/scholarytics&Date)
